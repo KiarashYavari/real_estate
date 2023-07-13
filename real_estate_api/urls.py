@@ -29,4 +29,5 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='refresh_token'),
     path('accounts/', include('real_estate_accounts.urls')),
     path('realtors/', include('realtors.urls')),
+    path('listings/', include('listings.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
