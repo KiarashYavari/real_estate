@@ -157,3 +157,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 FILE_UPLOAD_PERMISSIONS=0o640
 
 AUTH_USER_MODEL = 'real_estate_accounts.UserAccount'
+
+# Email setting
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'kiarealeestate@gmail.com'
+EMAIL_HOST_PASSWORD = 'do not put this for public views!'
+EMAIL_USE_TLS = True
