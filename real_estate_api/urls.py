@@ -30,4 +30,5 @@ urlpatterns = [
     path('accounts/', include('real_estate_accounts.urls')),
     path('realtors/', include('realtors.urls')),
     path('listings/', include('listings.urls')),
+    path('contacts/', include('contacts.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
