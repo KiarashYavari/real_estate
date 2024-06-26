@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom';
-import { Helmet, HelmetProvider } from 'react-helmet-async';
+import { Helmet } from 'react-helmet-async';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { login } from '../actions/auth';
 
-const SignIn = (login, isAuthenticated) => {
+const SignIn = ({login, isAuthenticated}) => {
   const [formData, setFormData] = useState({
     email:'',
     password:''
@@ -15,8 +15,10 @@ const SignIn = (login, isAuthenticated) => {
 
   const onSubmit = e => {
     e.preventDefault();
+
     login(email, password);
   };
+
   if (isAuthenticated==true){
     return <Navigate to='/' />
   }
