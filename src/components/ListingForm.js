@@ -46,7 +46,7 @@ const ListingForm = (props) => {
   }
 
   return (
-    <form className='listingsform' onsubmit={e => onSubmit(e)}>
+    <form className='listingsform' onSubmit={e => onSubmit(e)}>
       <div className='row'>
         <div className='col-1-of-6'>
             <div className='listingform_section'>
