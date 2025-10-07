@@ -9,8 +9,28 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+import os
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 
-from pathlib import Path
+# Helper: fetch single parameter (SecureString: WithDecryption=True)
+def _get_ssm_parameter(name, with_decryption=True, region_name=None):
+    region_name = region_name or os.environ.get("AWS_REGION", "us-east-1")
+    ssm = boto3.client("ssm", region_name=region_name)
+    try:
+        resp = ssm.get_parameter(Name=name, WithDecryption=with_decryption)
+        return resp["Parameter"]["Value"]
+    except (BotoCoreError, ClientError) as e:
+        # For production, log and re-raise or handle as appropriate.
+        raise
+
+# Example: load a small set of secrets at startup and cache them
+_SSM_CACHE = {}
+def _ssm(name):
+    if name not in _SSM_CACHE:
+        _SSM_CACHE[name] = _get_ssm_parameter(name)
+    return _SSM_CACHE[name]
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +40,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-_@ampe3cp%&#jsv9zr&+pezap=w&z&1x$yrj+4g&mxfqy9(yq1'
+# Django SECRET_KEY
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or _ssm("/realestate/prod/SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Optionally: boolean flags or other non-secret configs you can store as String
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if not DEBUG else ["*"]
+
+# # SECURITY WARNING: don't run with debug turned on in production!
+# DEBUG = True
+
+# ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -36,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
@@ -47,6 +74,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -76,18 +104,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'real_estate_api.wsgi.application'
 
-
+DB_USER = os.environ.get("DB_USER") or _ssm("/realestate/prod/DB_USER")
+DB_PASSWORD = os.environ.get("DB_PASSWORD") or _ssm("/realestate/prod/DB_PASSWORD")
+DB_NAME = os.environ.get("DB_NAME") or _ssm("/realestate/prod/DB_NAME") # dev -> real_estate_db
+DB_HOST = os.environ.get("DB_HOST") or _ssm("/realestate/prod/DB_HOST") # dev -> localhost
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'real_estate_db',
-        'USER': 'real_estate_user',
-        'PASSWORD': 'Q$478963nvhy',
-        'HOST': 'localhost',
-        'PORT': ''
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': '5432'
     }
 }
 
@@ -126,10 +157,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'build/static'
-]
+# STATICFILES_DIRS = [BASE_DIR / "build/static"]
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
 # Default primary key field type
@@ -159,9 +188,19 @@ FILE_UPLOAD_PERMISSIONS=0o640
 AUTH_USER_MODEL = 'real_estate_accounts.UserAccount'
 
 # Email setting
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'kiarealeestate@gmail.com'
-EMAIL_HOST_PASSWORD = 'do not put this for public views!'
-EMAIL_USE_TLS = True
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = 'kiarealeestate@gmail.com'
+# EMAIL_HOST_PASSWORD = 'do not put this for public views!'
+# EMAIL_USE_TLS = True
+
+# Security hardening for DEBUG=False
+# SESSION_COOKIE_SECURE = not DEBUG
+# CSRF_COOKIE_SECURE = not DEBUG
+# SECURE_BROWSER_XSS_FILTER = True
+# SECURE_CONTENT_TYPE_NOSNIFF = True
+# SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+# SECURE_HSTS_PRELOAD = not DEBUG
+# CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if not DEBUG else []

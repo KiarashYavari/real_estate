@@ -3,9 +3,9 @@ Django==4.2.3
 django-cors-headers==4.1.0
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.2.2
-Pillow==10.0.0
-psycopg2==2.9.6
-psycopg2-binary==2.9.6
+Pillow
+psycopg2-binary
+setuptools
 PyJWT==2.7.0
 pytz==2023.3
 sqlparse==0.4.4
